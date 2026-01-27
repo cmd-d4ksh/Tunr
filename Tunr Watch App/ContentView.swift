@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  Tunr
+//  tunr Watch App
 //
 //  Created by Daksh Shah on 27/01/26.
 //
