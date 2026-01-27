@@ -6,19 +6,60 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B09E00102F292C02008A3B43 /* tunr Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B09E00062F292BFE008A3B43 /* tunr Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B09E000E2F292C02008A3B43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B09EFFEC2F292B55008A3B43 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B09E00052F292BFE008A3B43;
+			remoteInfo = "tunr Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B09E00142F292C02008A3B43 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				B09E00102F292C02008A3B43 /* tunr Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		B09E00062F292BFE008A3B43 /* tunr Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "tunr Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B09EFFF42F292B55008A3B43 /* Tunr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tunr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		B09EFFF62F292B55008A3B43 /* Tunr */ = {
+		B09E00072F292BFE008A3B43 /* Tunr Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Tunr;
+			path = "Tunr Watch App";
+			sourceTree = "<group>";
+		};
+		B09EFFF62F292B55008A3B43 /* Tunr Ios App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Tunr Ios App";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		B09E00032F292BFE008A3B43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B09EFFF12F292B55008A3B43 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -32,7 +73,8 @@
 		B09EFFEB2F292B55008A3B43 = {
 			isa = PBXGroup;
 			children = (
-				B09EFFF62F292B55008A3B43 /* Tunr */,
+				B09EFFF62F292B55008A3B43 /* Tunr Ios App */,
+				B09E00072F292BFE008A3B43 /* Tunr Watch App */,
 				B09EFFF52F292B55008A3B43 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				B09EFFF42F292B55008A3B43 /* Tunr.app */,
+				B09E00062F292BFE008A3B43 /* tunr Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,6 +91,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		B09E00052F292BFE008A3B43 /* tunr Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B09E00112F292C02008A3B43 /* Build configuration list for PBXNativeTarget "tunr Watch App" */;
+			buildPhases = (
+				B09E00022F292BFE008A3B43 /* Sources */,
+				B09E00032F292BFE008A3B43 /* Frameworks */,
+				B09E00042F292BFE008A3B43 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B09E00072F292BFE008A3B43 /* Tunr Watch App */,
+			);
+			name = "tunr Watch App";
+			packageProductDependencies = (
+			);
+			productName = "tunr Watch App";
+			productReference = B09E00062F292BFE008A3B43 /* tunr Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 		B09EFFF32F292B55008A3B43 /* Tunr */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B09EFFFF2F292B57008A3B43 /* Build configuration list for PBXNativeTarget "Tunr" */;
@@ -55,13 +120,15 @@
 				B09EFFF02F292B55008A3B43 /* Sources */,
 				B09EFFF12F292B55008A3B43 /* Frameworks */,
 				B09EFFF22F292B55008A3B43 /* Resources */,
+				B09E00142F292C02008A3B43 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B09E000F2F292C02008A3B43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				B09EFFF62F292B55008A3B43 /* Tunr */,
+				B09EFFF62F292B55008A3B43 /* Tunr Ios App */,
 			);
 			name = Tunr;
 			packageProductDependencies = (
@@ -80,6 +147,9 @@
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					B09E00052F292BFE008A3B43 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					B09EFFF32F292B55008A3B43 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -100,11 +170,19 @@
 			projectRoot = "";
 			targets = (
 				B09EFFF32F292B55008A3B43 /* Tunr */,
+				B09E00052F292BFE008A3B43 /* tunr Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		B09E00042F292BFE008A3B43 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B09EFFF22F292B55008A3B43 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -115,6 +193,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B09E00022F292BFE008A3B43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B09EFFF02F292B55008A3B43 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -123,6 +208,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B09E000F2F292C02008A3B43 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B09E00052F292BFE008A3B43 /* tunr Watch App */;
+			targetProxy = B09E000E2F292C02008A3B43 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B09E00002F292B57008A3B43 /* Debug */ = {
@@ -186,6 +279,72 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B09E00122F292C02008A3B43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BD83AKRR5C;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = tunr;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.daksh.manan.Tunr;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.daksh.manan.Tunr.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		B09E00132F292C02008A3B43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BD83AKRR5C;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = tunr;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.daksh.manan.Tunr;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.daksh.manan.Tunr.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
 		};
@@ -313,6 +472,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		B09E00112F292C02008A3B43 /* Build configuration list for PBXNativeTarget "tunr Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B09E00122F292C02008A3B43 /* Debug */,
+				B09E00132F292C02008A3B43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		B09EFFEF2F292B55008A3B43 /* Build configuration list for PBXProject "Tunr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
