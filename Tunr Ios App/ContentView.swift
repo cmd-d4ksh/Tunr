@@ -63,47 +63,66 @@ struct ContentView: View {
     // MARK: - Tuner UI
 
     private var tunerView: some View {
-        VStack(spacing: 24) {
-            // Note name (large)
-            Text(detector.noteName)
-                .font(.system(size: 96, weight: .bold, design: .monospaced))
-                .foregroundColor(colorForCents(detector.cents))
-                .minimumScaleFactor(0.5)
+        VStack(spacing: 18) {
 
-            // Frequency
-            Text(String(format: "%.1f Hz", detector.frequency))
-                .font(.title2)
-                .foregroundColor(.white)
-                .monospaced()
-
-            // Cents indicator
-            VStack(spacing: 8) {
-                HStack(spacing: 20) {
-                    Text("♭").font(.title).foregroundColor(.red)
-                    
-                    ZStack(alignment: .center) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(colorForCents(detector.cents))
-                            .frame(width: 4, height: 12)
-                            .offset(x: CGFloat(detector.cents) * 2)
-                    }
-                    .frame(height: 20)
-
-                    Text("♯").font(.title).foregroundColor(.green)
-                }
-                .padding(.horizontal, 24)
-
-                Text(String(format: "%.1f¢", detector.cents))
-                    .font(.caption)
+            // Top bar: status + freq
+            HStack {
+                let inTune = abs(detector.cents) < 5
+                Text(inTune ? "IN TUNE" : (detector.frequency > 0 ? "TUNING" : "LISTENING"))
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(colorForCents(detector.cents).opacity(0.18)))
+                    .overlay(Capsule().stroke(colorForCents(detector.cents).opacity(0.35), lineWidth: 1))
                     .foregroundColor(colorForCents(detector.cents))
+
+                Spacer()
+
+                Text(String(format: "%.1f Hz", detector.frequency))
+                    .font(.caption.monospacedDigit())
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.08)))
             }
+
+            // Big note
+            Text(detector.noteName)
+                .font(.system(size: 88, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            // Needle gauge
+            TunerNeedleGauge(cents: detector.cents, tint: colorForCents(detector.cents))
+                .frame(height: 96)
+
+            // String selector (tap to lock)
+            StringSelectorRow(
+                strings: GuitarTuning.standard,
+                selected: detector.lockedTarget ?? detector.closestTarget,   // 👈 auto-detect selects it
+                onSelect: { note in
+                    // optional: tap to lock/unlock
+                    if detector.lockedTarget?.id == note.id {
+                        detector.lockedTarget = nil
+                    } else {
+                        detector.lockedTarget = note
+                    }
+                }
+            )
+
+            // Bottom readout
+            let displayCents = max(-50, min(50, detector.cents))
+            Text(String(format: "%+.1f¢", displayCents))
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .foregroundColor(colorForCents(detector.cents))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color.white.opacity(0.08)))
         }
-        .padding()
+        .padding(18)
     }
+
 
     // MARK: - Helpers
 
@@ -161,3 +180,86 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+
+private struct TunerNeedleGauge: View {
+    let cents: Double
+    let tint: Color
+
+    private var clamped: Double { max(-25, min(25, cents)) }
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let center = w / 2
+            let travel: CGFloat = w * 0.38
+            let x = center + (CGFloat(clamped) / 25.0) * travel
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+
+                // ticks
+                HStack(spacing: 0) {
+                    ForEach(-5...5, id: \.self) { i in
+                        Rectangle()
+                            .fill(Color.white.opacity(i == 0 ? 0.55 : 0.18))
+                            .frame(width: i == 0 ? 2 : 1, height: i == 0 ? 42 : 22)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal, 18)
+
+                // needle
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(tint)
+                    .frame(width: 6, height: 52)
+                    .shadow(radius: 10)
+                    .position(x: x, y: geo.size.height / 2)
+                    .animation(.spring(response: 0.22, dampingFraction: 0.82), value: clamped)
+            }
+        }
+    }
+}
+
+private struct StringSelectorRow: View {
+    let strings: [GuitarNote]
+    let selected: GuitarNote?
+    let onSelect: (GuitarNote) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(strings) { note in
+                let isSelected = selected?.id == note.id
+
+                Button {
+                    onSelect(note)
+                } label: {
+                    Text(note.name)
+                        .font(.headline.weight(.semibold))
+                        .frame(width: 38, height: 38)
+                        .background(
+                            Circle().fill(
+                                isSelected ? Color.white.opacity(0.22)
+                                           : Color.white.opacity(0.06)
+                            )
+                        )
+                        .overlay(
+                            Circle().stroke(
+                                isSelected ? Color.white.opacity(0.60)
+                                           : Color.white.opacity(0.10),
+                                lineWidth: 1
+                            )
+                        )
+                        .foregroundColor(.white)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, 4)
+    }
+}
+
