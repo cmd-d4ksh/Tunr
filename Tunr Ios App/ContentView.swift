@@ -4,15 +4,14 @@ import AVFoundation
 struct ContentView: View {
 
     // MARK: - State
-
     @State private var micAuthorized = false
     @State private var permissionChecked = false
     @State private var errorMessage: String? = nil
+    @State private var detectorStarted = false
 
     @StateObject private var detector = PitchDetector()
 
     // MARK: - UI
-
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -56,25 +55,36 @@ struct ContentView: View {
             setupAudioAndPermissions()
         }
         .onDisappear {
-            detector.stop()
+            if detectorStarted {
+                detector.stop()
+                detectorStarted = false
+            }
         }
     }
 
     // MARK: - Tuner UI
-
     private var tunerView: some View {
         VStack(spacing: 18) {
 
-            // Top bar: status + freq
+            // Status + Frequency
             HStack {
                 let inTune = abs(detector.cents) < 5
-                Text(inTune ? "IN TUNE" : (detector.frequency > 0 ? "TUNING" : "LISTENING"))
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Capsule().fill(colorForCents(detector.cents).opacity(0.18)))
-                    .overlay(Capsule().stroke(colorForCents(detector.cents).opacity(0.35), lineWidth: 1))
-                    .foregroundColor(colorForCents(detector.cents))
+
+                Text(
+                    inTune
+                    ? "IN TUNE"
+                    : (detector.frequency > 0 ? "TUNING" : "LISTENING")
+                )
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule().fill(colorForCents(detector.cents).opacity(0.18))
+                )
+                .overlay(
+                    Capsule().stroke(colorForCents(detector.cents).opacity(0.35), lineWidth: 1)
+                )
+                .foregroundColor(colorForCents(detector.cents))
 
                 Spacer()
 
@@ -86,81 +96,70 @@ struct ContentView: View {
                     .background(Capsule().fill(Color.white.opacity(0.08)))
             }
 
-            // Big note
+            // Big Note
             Text(detector.noteName)
                 .font(.system(size: 88, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
 
-            // Needle gauge
-            TunerNeedleGauge(cents: detector.cents, tint: colorForCents(detector.cents))
-                .frame(height: 96)
+            // Needle
+            TunerNeedleGauge(
+                cents: detector.cents,
+                tint: colorForCents(detector.cents)
+            )
+            .frame(height: 96)
 
-            // String selector (tap to lock)
+            // String Selector
             StringSelectorRow(
                 strings: GuitarTuning.standard,
-                selected: detector.lockedTarget ?? detector.closestTarget,   // 👈 auto-detect selects it
+                selected: detector.lockedTarget ?? detector.closestTarget,
                 onSelect: { note in
-                    // optional: tap to lock/unlock
-                    if detector.lockedTarget?.id == note.id {
-                        detector.lockedTarget = nil
-                    } else {
-                        detector.lockedTarget = note
-                    }
+                    detector.lockedTarget =
+                        (detector.lockedTarget?.id == note.id) ? nil : note
                 }
             )
 
-            // Bottom readout
-            let displayCents = max(-50, min(50, detector.cents))
-            Text(String(format: "%+.1f¢", displayCents))
+            // Cents Readout
+            Text(String(format: "%+.1f¢", detector.cents))
                 .font(.title3.monospacedDigit().weight(.semibold))
                 .foregroundColor(colorForCents(detector.cents))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color.white.opacity(0.08)))
         }
         .padding(18)
     }
 
-
     // MARK: - Helpers
-
     private func colorForCents(_ cents: Double) -> Color {
-        if abs(cents) < 5 {
-            return .green
-        } else if abs(cents) < 15 {
-            return .yellow
-        } else {
-            return .red
-        }
+        if abs(cents) < 5 { return .green }
+        if abs(cents) < 15 { return .yellow }
+        return .red
     }
 
     // MARK: - Audio + Permissions
-
     private func setupAudioAndPermissions() {
 
         requestMicrophonePermission { granted in
             micAuthorized = granted
             permissionChecked = true
 
-            guard granted else {
-                print("❌ Mic permission denied")
-                return
-            }
+            guard granted else { return }
+            guard !detectorStarted else { return }
 
             do {
                 try AudioSessionManager.shared.configureAndActivate()
                 detector.start()
-                print("🎧 Detector started AFTER permission + session")
+                WatchSessionManager.shared.start()
+                detectorStarted = true
+                print("🎧 Detector started safely")
             } catch {
-                print("❌ Audio setup failed:", error)
                 errorMessage = error.localizedDescription
             }
         }
     }
 
-    private func requestMicrophonePermission(completion: @escaping (Bool) -> Void) {
+    private func requestMicrophonePermission(
+        completion: @escaping (Bool) -> Void
+    ) {
         if #available(iOS 17.0, *) {
             AVAudioApplication.requestRecordPermission { granted in
                 DispatchQueue.main.async {
@@ -177,10 +176,7 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
-}
-
+// MARK: - Needle Gauge
 private struct TunerNeedleGauge: View {
     let cents: Double
     let tint: Color
@@ -189,9 +185,9 @@ private struct TunerNeedleGauge: View {
 
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width
-            let center = w / 2
-            let travel: CGFloat = w * 0.38
+            let width = geo.size.width
+            let center = width / 2
+            let travel: CGFloat = width * 0.38
             let x = center + (CGFloat(clamped) / 25.0) * travel
 
             ZStack {
@@ -199,32 +195,37 @@ private struct TunerNeedleGauge: View {
                     .fill(Color.white.opacity(0.06))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
                     )
 
-                // ticks
                 HStack(spacing: 0) {
                     ForEach(-5...5, id: \.self) { i in
                         Rectangle()
-                            .fill(Color.white.opacity(i == 0 ? 0.55 : 0.18))
-                            .frame(width: i == 0 ? 2 : 1, height: i == 0 ? 42 : 22)
+                            .fill(Color.white.opacity(i == 0 ? 0.6 : 0.2))
+                            .frame(
+                                width: i == 0 ? 2 : 1,
+                                height: i == 0 ? 44 : 22
+                            )
                             .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.horizontal, 18)
 
-                // needle
                 RoundedRectangle(cornerRadius: 3)
                     .fill(tint)
-                    .frame(width: 6, height: 52)
+                    .frame(width: 6, height: 54)
                     .shadow(radius: 10)
                     .position(x: x, y: geo.size.height / 2)
-                    .animation(.spring(response: 0.22, dampingFraction: 0.82), value: clamped)
+                    .animation(
+                        .spring(response: 0.22, dampingFraction: 0.82),
+                        value: clamped
+                    )
             }
         }
     }
 }
 
+// MARK: - String Selector
 private struct StringSelectorRow: View {
     let strings: [GuitarNote]
     let selected: GuitarNote?
@@ -243,14 +244,16 @@ private struct StringSelectorRow: View {
                         .frame(width: 38, height: 38)
                         .background(
                             Circle().fill(
-                                isSelected ? Color.white.opacity(0.22)
-                                           : Color.white.opacity(0.06)
+                                isSelected
+                                ? Color.white.opacity(0.25)
+                                : Color.white.opacity(0.06)
                             )
                         )
                         .overlay(
                             Circle().stroke(
-                                isSelected ? Color.white.opacity(0.60)
-                                           : Color.white.opacity(0.10),
+                                isSelected
+                                ? Color.white.opacity(0.65)
+                                : Color.white.opacity(0.12),
                                 lineWidth: 1
                             )
                         )
@@ -262,4 +265,3 @@ private struct StringSelectorRow: View {
         .padding(.top, 4)
     }
 }
-
