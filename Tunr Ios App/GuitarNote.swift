@@ -21,7 +21,7 @@ struct GuitarTuning {
         guard frequency > 0 else { return nil }
 
         return standard.min {
-            abs($0.frequency - frequency) < abs($1.frequency - frequency)
+            abs(log2($0.frequency / frequency)) < abs(log2($1.frequency / frequency))
         }
     }
 

@@ -2,7 +2,8 @@ import Foundation
 import AVFoundation
 import Combine
 import QuartzCore
-import WatchConnectivity
+import Accelerate
+
 final class PitchDetector: ObservableObject {
 
     // MARK: - Audio Engine
@@ -18,8 +19,11 @@ final class PitchDetector: ObservableObject {
     // Smoothing & timing
     private var smoothedFreq: Double = 0
     private var smoothedCents: Double = 0
-    private let smoothing: Double = 0.20
+    private let smoothing: Double = 0.25
     private var lastPublishTime: CFTimeInterval = 0
+
+    // YIN threshold — lower = stricter pitch confidence
+    private let yinThreshold: Float = 0.15
 
     // MARK: - Published (UI)
     @Published var frequency: Double = 0.0
@@ -95,22 +99,17 @@ final class PitchDetector: ObservableObject {
     // MARK: - Signal Processing
     private func process(signal: [Float]) {
 
-        // RMS gate (ignore silence)
         let rms = sqrt(signal.map { $0 * $0 }.reduce(0, +) / Float(signal.count))
-        guard rms > 0.001 else { return }
+        guard rms > 0.005 else { return }
 
-        // Pitch detection
-        let detectedFrequency = autocorrelationPitch(signal: signal)
+        let detectedFrequency = yinPitch(signal: applyHannWindow(signal))
         guard detectedFrequency > 70 && detectedFrequency < 400 else { return }
 
-        // Throttle UI updates
         let now = CACurrentMediaTime()
-        guard now - lastPublishTime > 0.08 else { return }
+        guard now - lastPublishTime > 0.06 else { return }
         lastPublishTime = now
 
         DispatchQueue.main.async {
-
-            // Smooth frequency
             self.smoothedFreq = (self.smoothedFreq == 0)
                 ? detectedFrequency
                 : (self.smoothing * detectedFrequency
@@ -118,7 +117,6 @@ final class PitchDetector: ObservableObject {
 
             self.frequency = self.smoothedFreq
 
-            // Determine target note
             let target = self.lockedTarget
                 ?? GuitarTuning.closestNote(to: self.smoothedFreq)
 
@@ -131,7 +129,6 @@ final class PitchDetector: ObservableObject {
                     target: note.frequency
                 )
 
-                // Smooth cents
                 self.smoothedCents = (self.smoothedCents == 0)
                     ? rawCents
                     : (self.smoothing * rawCents
@@ -139,37 +136,96 @@ final class PitchDetector: ObservableObject {
 
                 self.cents = self.smoothedCents
             }
+
             WatchSessionManager.shared.sendTuningUpdate(
-                    freq: self.frequency,
-                    note: self.noteName,
-                    cents: self.cents)
+                freq: self.frequency,
+                note: self.noteName,
+                cents: self.cents
+            )
         }
     }
 
-    // MARK: - Autocorrelation Pitch Detection
-    private func autocorrelationPitch(signal: [Float]) -> Double {
-
+    // MARK: - Hann Window
+    private func applyHannWindow(_ signal: [Float]) -> [Float] {
         let n = signal.count
-        guard n >= 2048 else { return 0 }
+        var windowed = [Float](repeating: 0, count: n)
+        var window = [Float](repeating: 0, count: n)
+        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_NORM))
+        vDSP_vmul(signal, 1, window, 1, &windowed, 1, vDSP_Length(n))
+        return windowed
+    }
 
-        let minLag = Int(sampleRate / 400)
-        let maxLag = min(Int(sampleRate / 70), n / 2)
+    // MARK: - YIN Pitch Detection
+    private func yinPitch(signal: [Float]) -> Double {
+        let halfLen = signal.count / 2
+        let minLag = Int(sampleRate / 400)   // highest freq we care about
+        let maxLag = min(Int(sampleRate / 70), halfLen)  // lowest freq
+        guard maxLag > minLag else { return 0 }
 
-        var bestLag = 0
-        var bestValue: Float = 0
+        // Step 1 & 2: Difference function + cumulative mean normalized difference
+        var diff = [Float](repeating: 0, count: maxLag)
+        var cmndf = [Float](repeating: 0, count: maxLag)
 
-        for lag in minLag..<maxLag {
+        for tau in 1..<maxLag {
             var sum: Float = 0
-            for i in 0..<(n - lag) {
-                sum += signal[i] * signal[i + lag]
+            for i in 0..<halfLen {
+                let delta = signal[i] - signal[i + tau]
+                sum += delta * delta
             }
-            if sum > bestValue {
-                bestValue = sum
-                bestLag = lag
+            diff[tau] = sum
+        }
+
+        cmndf[0] = 1.0
+        var runningSum: Float = 0
+        for tau in 1..<maxLag {
+            runningSum += diff[tau]
+            cmndf[tau] = (runningSum > 0) ? diff[tau] * Float(tau) / runningSum : 1.0
+        }
+
+        // Step 3: Absolute threshold — find the first dip below threshold
+        var bestTau = 0
+        for tau in minLag..<maxLag {
+            if cmndf[tau] < yinThreshold {
+                bestTau = tau
+                // Walk to the local minimum
+                while bestTau + 1 < maxLag && cmndf[bestTau + 1] < cmndf[bestTau] {
+                    bestTau += 1
+                }
+                break
             }
         }
 
-        guard bestLag > 0 else { return 0 }
-        return sampleRate / Double(bestLag)
+        // Fallback: if no dip below threshold, pick the global minimum
+        if bestTau == 0 {
+            var minVal: Float = .greatestFiniteMagnitude
+            for tau in minLag..<maxLag {
+                if cmndf[tau] < minVal {
+                    minVal = cmndf[tau]
+                    bestTau = tau
+                }
+            }
+        }
+
+        guard bestTau > 0 else { return 0 }
+
+        // Step 4: Parabolic interpolation for sub-sample accuracy
+        let refinedTau = parabolicInterpolation(cmndf, bestTau)
+
+        return sampleRate / Double(refinedTau)
+    }
+
+    // MARK: - Parabolic Interpolation
+    private func parabolicInterpolation(_ data: [Float], _ peak: Int) -> Float {
+        guard peak > 0, peak < data.count - 1 else { return Float(peak) }
+
+        let a = data[peak - 1]
+        let b = data[peak]
+        let c = data[peak + 1]
+
+        let denominator = 2.0 * (a - 2.0 * b + c)
+        guard abs(denominator) > 1e-10 else { return Float(peak) }
+
+        let shift = (a - c) / denominator
+        return Float(peak) + shift
     }
 }
