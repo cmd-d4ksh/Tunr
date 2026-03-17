@@ -360,42 +360,66 @@ private struct StringSelector: View {
     var body: some View {
         HStack(spacing: 8) {
             ForEach(strings) { note in
-                let isSelected = selected?.id == note.id
-                let isAuto = autoDetected?.id == note.id && !isSelected
-                let isInTune = inTuneNoteId == note.id
-
-                Button { onSelect(note) } label: {
-                    VStack(spacing: 2) {
-                        Text(note.name)
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                        Text("\(note.stringNumber)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(isInTune ? .green.opacity(0.6) : .white.opacity(0.35))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(isInTune ? Color.green.opacity(0.15)
-                                  : (isSelected ? Color.white.opacity(0.15)
-                                     : (isAuto ? Color.white.opacity(0.06)
-                                        : Color.white.opacity(0.03))))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                isInTune ? Color.green.opacity(0.5)
-                                : (isSelected ? Color.white.opacity(0.45)
-                                   : (isAuto ? Color.white.opacity(0.12)
-                                      : Color.white.opacity(0.06))),
-                                lineWidth: (isInTune || isSelected) ? 1.5 : 1
-                            )
-                    )
-                    .foregroundColor(isInTune ? .green : (isSelected ? .white : .white.opacity(0.6)))
-                    .animation(.easeInOut(duration: 0.3), value: isInTune)
-                }
-                .buttonStyle(.plain)
+                StringButton(
+                    note: note,
+                    isSelected: selected?.id == note.id,
+                    isAuto: autoDetected?.id == note.id && selected?.id != note.id,
+                    isInTune: inTuneNoteId == note.id,
+                    onSelect: onSelect
+                )
             }
         }
+    }
+}
+
+private struct StringButton: View {
+    let note: GuitarNote
+    let isSelected: Bool
+    let isAuto: Bool
+    let isInTune: Bool
+    let onSelect: (GuitarNote) -> Void
+
+    private var fillColor: Color {
+        if isInTune { return Color.green.opacity(0.15) }
+        if isSelected { return Color.white.opacity(0.15) }
+        if isAuto { return Color.white.opacity(0.06) }
+        return Color.white.opacity(0.03)
+    }
+
+    private var strokeColor: Color {
+        if isInTune { return Color.green.opacity(0.5) }
+        if isSelected { return Color.white.opacity(0.45) }
+        if isAuto { return Color.white.opacity(0.12) }
+        return Color.white.opacity(0.06)
+    }
+
+    private var textColor: Color {
+        if isInTune { return .green }
+        if isSelected { return .white }
+        return .white.opacity(0.6)
+    }
+
+    var body: some View {
+        Button { onSelect(note) } label: {
+            VStack(spacing: 2) {
+                Text(note.name)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                Text("\(note.stringNumber)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(isInTune ? .green.opacity(0.6) : .white.opacity(0.35))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                RoundedRectangle(cornerRadius: 12).fill(fillColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(strokeColor, lineWidth: (isInTune || isSelected) ? 1.5 : 1)
+            )
+            .foregroundColor(textColor)
+            .animation(.easeInOut(duration: 0.3), value: isInTune)
+        }
+        .buttonStyle(.plain)
     }
 }
