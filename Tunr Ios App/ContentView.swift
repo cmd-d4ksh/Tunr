@@ -11,14 +11,12 @@ struct ContentView: View {
 
     @StateObject private var detector = PitchDetector()
 
-    private var inTune: Bool { abs(detector.cents) < 3 && detector.frequency > 0 }
-    private var nearTune: Bool { abs(detector.cents) < 8 }
+    private var inTune: Bool { abs(detector.cents) < 5 && detector.frequency > 0 }
 
-    // MARK: - UI
+    // MARK: - Body
     var body: some View {
         ZStack {
-            backgroundGradient
-                .ignoresSafeArea()
+            backgroundColor.ignoresSafeArea()
 
             if !permissionChecked {
                 loadingView
@@ -40,19 +38,17 @@ struct ContentView: View {
     }
 
     // MARK: - Background
-    private var backgroundGradient: some View {
+    private var backgroundColor: some View {
         ZStack {
             Color.black
-
-            // Subtle radial glow when in tune
             if inTune {
                 RadialGradient(
-                    colors: [Color.green.opacity(0.08), Color.clear],
+                    colors: [Color.green.opacity(0.1), Color.clear],
                     center: .center,
-                    startRadius: 50,
-                    endRadius: 350
+                    startRadius: 40,
+                    endRadius: 300
                 )
-                .animation(.easeInOut(duration: 0.6), value: inTune)
+                .animation(.easeInOut(duration: 0.5), value: inTune)
             }
         }
     }
@@ -108,11 +104,9 @@ struct ContentView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
                 .foregroundColor(.orange)
-
             Text("Setup Error")
                 .foregroundColor(.white)
                 .font(.title3.bold())
-
             Text(error)
                 .foregroundColor(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
@@ -125,64 +119,72 @@ struct ContentView: View {
     private var tunerView: some View {
         VStack(spacing: 0) {
 
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 24)
 
-            // Status pill + Frequency
+            // Status bar
             HStack {
                 StatusPill(
                     text: inTune ? "IN TUNE" : (detector.frequency > 0 ? "TUNING" : "LISTENING"),
-                    color: colorForCents(detector.cents),
-                    isActive: detector.frequency > 0
+                    color: tuneColor
                 )
-
                 Spacer()
-
                 if detector.frequency > 0 {
                     Text(String(format: "%.1f Hz", detector.frequency))
                         .font(.caption.monospacedDigit().weight(.medium))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.white.opacity(0.4))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(
-                            Capsule().fill(Color.white.opacity(0.06))
-                        )
+                        .background(Capsule().fill(Color.white.opacity(0.06)))
                 }
             }
             .padding(.horizontal, 20)
 
             Spacer()
 
-            // Big Note Display
-            noteDisplay
-                .padding(.bottom, 4)
+            // Direction hint — tells you what to do
+            if detector.frequency > 0 && !inTune {
+                Text(detector.cents < 0 ? "TUNE UP" : "TUNE DOWN")
+                    .font(.caption.weight(.bold))
+                    .tracking(1.5)
+                    .foregroundColor(tuneColor.opacity(0.7))
+                    .padding(.bottom, 6)
+            }
 
-            // Cents readout
-            if detector.frequency > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: detector.cents < -1 ? "arrow.down" : (detector.cents > 1 ? "arrow.up" : "checkmark"))
-                        .font(.caption2.weight(.bold))
-                    Text(String(format: "%+.1f¢", detector.cents))
-                        .font(.callout.monospacedDigit().weight(.semibold))
-                }
-                .foregroundColor(colorForCents(detector.cents))
-                .padding(.bottom, 8)
+            // Big note name
+            Text(detector.noteName)
+                .font(.system(size: 100, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .shadow(
+                    color: inTune ? .green.opacity(0.5) : .clear,
+                    radius: inTune ? 24 : 0
+                )
+                .animation(.easeInOut(duration: 0.3), value: inTune)
+
+            // Target frequency (small, subtle)
+            if detector.frequency > 0, let target = detector.closestTarget {
+                Text("target: \(String(format: "%.1f", target.frequency)) Hz")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundColor(.white.opacity(0.25))
+                    .padding(.top, 2)
             }
 
             Spacer()
 
-            // Needle gauge
-            TunerNeedleGauge(
+            // Tuner gauge
+            TunerGauge(
                 cents: detector.cents,
-                tint: colorForCents(detector.cents),
+                color: tuneColor,
                 isActive: detector.frequency > 0
             )
-            .frame(height: 80)
-            .padding(.horizontal, 16)
+            .frame(height: 72)
+            .padding(.horizontal, 20)
 
             Spacer()
 
             // String selector
-            StringSelectorRow(
+            StringSelector(
                 strings: GuitarTuning.standard,
                 selected: detector.lockedTarget ?? detector.closestTarget,
                 autoDetected: detector.lockedTarget == nil ? detector.closestTarget : nil,
@@ -191,49 +193,26 @@ struct ContentView: View {
                         detector.lockedTarget =
                             (detector.lockedTarget?.id == note.id) ? nil : note
                     }
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
             )
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
 
-            Spacer().frame(height: 30)
+            Spacer().frame(height: 32)
         }
         .onChange(of: inTune) { _, newValue in
             if newValue {
-                let notification = UINotificationFeedbackGenerator()
-                notification.notificationOccurred(.success)
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
             }
         }
     }
 
-    // MARK: - Note Display
-    private var noteDisplay: some View {
-        VStack(spacing: 2) {
-            Text(detector.noteName)
-                .font(.system(size: 96, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-                .shadow(
-                    color: inTune ? .green.opacity(0.4) : .clear,
-                    radius: inTune ? 20 : 0
-                )
-                .animation(.easeInOut(duration: 0.3), value: inTune)
-
-            if detector.frequency > 0, let target = detector.closestTarget {
-                Text(String(format: "%.2f Hz", target.frequency))
-                    .font(.caption2.monospacedDigit())
-                    .foregroundColor(.white.opacity(0.3))
-            }
-        }
-    }
-
-    // MARK: - Helpers
-    private func colorForCents(_ cents: Double) -> Color {
+    // MARK: - Tune Color
+    private var tuneColor: Color {
         guard detector.frequency > 0 else { return .gray }
-        if abs(cents) < 3 { return .green }
-        if abs(cents) < 10 { return .yellow }
+        let c = abs(detector.cents)
+        if c < 5 { return .green }
+        if c < 15 { return .yellow }
         return .red
     }
 
@@ -256,9 +235,7 @@ struct ContentView: View {
         }
     }
 
-    private func requestMicrophonePermission(
-        completion: @escaping (Bool) -> Void
-    ) {
+    private func requestMicrophonePermission(completion: @escaping (Bool) -> Void) {
         if #available(iOS 17.0, *) {
             AVAudioApplication.requestRecordPermission { granted in
                 DispatchQueue.main.async { completion(granted) }
@@ -275,48 +252,44 @@ struct ContentView: View {
 private struct StatusPill: View {
     let text: String
     let color: Color
-    let isActive: Bool
 
     var body: some View {
         HStack(spacing: 6) {
             Circle()
                 .fill(color)
                 .frame(width: 6, height: 6)
-
             Text(text)
                 .font(.caption2.weight(.bold))
                 .tracking(0.5)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(
-            Capsule().fill(color.opacity(0.12))
-        )
-        .overlay(
-            Capsule().stroke(color.opacity(0.25), lineWidth: 1)
-        )
+        .background(Capsule().fill(color.opacity(0.12)))
+        .overlay(Capsule().stroke(color.opacity(0.2), lineWidth: 1))
         .foregroundColor(color)
     }
 }
 
-// MARK: - Needle Gauge
-private struct TunerNeedleGauge: View {
+// MARK: - Tuner Gauge
+private struct TunerGauge: View {
     let cents: Double
-    let tint: Color
+    let color: Color
     let isActive: Bool
 
     private var clamped: Double { max(-30, min(30, cents)) }
 
     var body: some View {
         GeometryReader { geo in
-            let width = geo.size.width
-            let height = geo.size.height
-            let center = width / 2
-            let travel: CGFloat = width * 0.40
-            let x = isActive ? center + (CGFloat(clamped) / 30.0) * travel : center
+            let w = geo.size.width
+            let h = geo.size.height
+            let center = w / 2
+            let travel = w * 0.40
+            let needleX = isActive
+                ? center + CGFloat(clamped / 30.0) * travel
+                : center
 
             ZStack {
-                // Track background
+                // Track
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.white.opacity(0.04))
                     .overlay(
@@ -324,38 +297,50 @@ private struct TunerNeedleGauge: View {
                             .stroke(Color.white.opacity(0.08), lineWidth: 1)
                     )
 
+                // Flat / Sharp labels
+                HStack {
+                    Text("FLAT")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundColor(.white.opacity(0.15))
+                        .padding(.leading, 14)
+                    Spacer()
+                    Text("SHARP")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundColor(.white.opacity(0.15))
+                        .padding(.trailing, 14)
+                }
+
                 // Tick marks
                 HStack(spacing: 0) {
-                    ForEach(-6...6, id: \.self) { i in
-                        let isMajor = i == 0
-                        let isMinor = abs(i) == 3 || abs(i) == 6
-
+                    ForEach(-5...5, id: \.self) { i in
                         Rectangle()
-                            .fill(Color.white.opacity(isMajor ? 0.5 : (isMinor ? 0.2 : 0.1)))
+                            .fill(Color.white.opacity(i == 0 ? 0.5 : 0.15))
                             .frame(
-                                width: isMajor ? 2 : 1,
-                                height: isMajor ? 40 : (isMinor ? 24 : 14)
+                                width: i == 0 ? 2 : 1,
+                                height: i == 0 ? 36 : 16
                             )
                             .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
 
-                // Center zone highlight (green when close)
-                if isActive && abs(clamped) < 5 {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.green.opacity(0.08))
-                        .frame(width: travel * 2 * 5 / 30, height: height - 8)
+                // Green zone indicator at center
+                if isActive && abs(clamped) < 8 {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.green.opacity(0.06))
+                        .frame(width: travel * 2 * 5 / 30, height: h - 12)
                 }
 
                 // Needle
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(tint)
-                    .frame(width: 5, height: 52)
-                    .shadow(color: tint.opacity(0.5), radius: 8)
-                    .position(x: x, y: height / 2)
+                    .fill(color)
+                    .frame(width: 5, height: 48)
+                    .shadow(color: color.opacity(0.6), radius: 8)
+                    .position(x: needleX, y: h / 2)
                     .animation(
-                        .spring(response: 0.25, dampingFraction: 0.78),
+                        .spring(response: 0.25, dampingFraction: 0.8),
                         value: clamped
                     )
             }
@@ -364,7 +349,7 @@ private struct TunerNeedleGauge: View {
 }
 
 // MARK: - String Selector
-private struct StringSelectorRow: View {
+private struct StringSelector: View {
     let strings: [GuitarNote]
     let selected: GuitarNote?
     let autoDetected: GuitarNote?
@@ -376,37 +361,32 @@ private struct StringSelectorRow: View {
                 let isSelected = selected?.id == note.id
                 let isAuto = autoDetected?.id == note.id && !isSelected
 
-                Button {
-                    onSelect(note)
-                } label: {
-                    VStack(spacing: 3) {
+                Button { onSelect(note) } label: {
+                    VStack(spacing: 2) {
                         Text(note.name)
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                         Text("\(note.stringNumber)")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.white.opacity(0.35))
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 54)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(
-                                isSelected
-                                ? Color.white.opacity(0.18)
-                                : (isAuto ? Color.white.opacity(0.06) : Color.white.opacity(0.03))
-                            )
+                            .fill(isSelected ? Color.white.opacity(0.15)
+                                  : (isAuto ? Color.white.opacity(0.06)
+                                     : Color.white.opacity(0.03)))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                isSelected
-                                ? Color.white.opacity(0.5)
-                                : (isAuto ? Color.white.opacity(0.15) : Color.white.opacity(0.06)),
+                                isSelected ? Color.white.opacity(0.45)
+                                : (isAuto ? Color.white.opacity(0.12)
+                                   : Color.white.opacity(0.06)),
                                 lineWidth: isSelected ? 1.5 : 1
                             )
                     )
-                    .foregroundColor(isSelected ? .white : .white.opacity(0.7))
+                    .foregroundColor(isSelected ? .white : .white.opacity(0.6))
                 }
                 .buttonStyle(.plain)
             }

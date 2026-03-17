@@ -29,7 +29,6 @@ struct ContentView: View {
             Image(systemName: "iphone.slash")
                 .font(.system(size: 28))
                 .foregroundColor(.gray)
-
             Text("Open Tunr\non iPhone")
                 .font(.caption.weight(.medium))
                 .foregroundColor(.white.opacity(0.5))
@@ -37,14 +36,13 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Waiting for Signal
+    // MARK: - Waiting
     private var waitingView: some View {
         VStack(spacing: 8) {
             Image(systemName: "waveform")
                 .font(.system(size: 24))
                 .foregroundColor(.white.opacity(0.4))
                 .symbolEffect(.variableColor.iterative)
-
             Text("Listening...")
                 .font(.caption2.weight(.medium))
                 .foregroundColor(.white.opacity(0.4))
@@ -59,7 +57,6 @@ struct ContentView: View {
                 Circle()
                     .fill(tint)
                     .frame(width: 5, height: 5)
-
                 Text(inTune ? "IN TUNE" : "TUNING")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(0.3)
@@ -67,9 +64,7 @@ struct ContentView: View {
             .foregroundColor(tint)
             .padding(.horizontal, 10)
             .padding(.vertical, 3)
-            .background(
-                Capsule().fill(tint.opacity(0.15))
-            )
+            .background(Capsule().fill(tint.opacity(0.15)))
 
             Spacer().frame(height: 2)
 
@@ -82,32 +77,31 @@ struct ContentView: View {
                     radius: inTune ? 12 : 0
                 )
 
-            // Frequency
-            Text(String(format: "%.1f Hz", session.frequency))
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundColor(.white.opacity(0.45))
+            // Direction hint instead of cents
+            if !inTune {
+                Text(session.cents < 0 ? "Tune Up" : "Tune Down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(tint.opacity(0.8))
+            } else {
+                Text(String(format: "%.1f Hz", session.frequency))
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.4))
+            }
 
             Spacer().frame(height: 4)
 
             // Tuner bar
             WatchTunerBar(cents: session.cents, tint: tint)
-                .frame(height: 18)
-                .padding(.horizontal, 6)
-
-            Spacer().frame(height: 2)
-
-            // Cents
-            Text(String(format: "%+.1f¢", session.cents))
-                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                .foregroundColor(tint)
+                .frame(height: 16)
+                .padding(.horizontal, 8)
         }
         .padding(.vertical, 4)
     }
 
     private var tint: Color {
         guard session.frequency > 0 else { return .gray }
-        if abs(session.cents) < 3 { return .green }
-        if abs(session.cents) < 10 { return .yellow }
+        if abs(session.cents) < 5 { return .green }
+        if abs(session.cents) < 15 { return .yellow }
         return .red
     }
 }
@@ -117,45 +111,31 @@ private struct WatchTunerBar: View {
     let cents: Double
     let tint: Color
 
-    private var clamped: Double {
-        max(-25, min(25, cents))
-    }
+    private var clamped: Double { max(-25, min(25, cents)) }
 
     var body: some View {
         GeometryReader { geo in
-            let width = geo.size.width
-            let height = geo.size.height
-            let center = width / 2
-            let x = center + (CGFloat(clamped) / 25.0) * (width * 0.42)
+            let w = geo.size.width
+            let h = geo.size.height
+            let center = w / 2
+            let x = center + CGFloat(clamped / 25.0) * (w * 0.42)
 
             ZStack {
                 // Track
-                RoundedRectangle(cornerRadius: 9)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Color.white.opacity(0.08))
 
                 // Center tick
                 Rectangle()
                     .fill(Color.white.opacity(0.3))
-                    .frame(width: 1.5, height: height * 0.7)
-
-                // Side ticks
-                HStack {
-                    Rectangle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 1, height: height * 0.4)
-                    Spacer()
-                    Rectangle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 1, height: height * 0.4)
-                }
-                .padding(.horizontal, width * 0.25)
+                    .frame(width: 1.5, height: h * 0.65)
 
                 // Needle
                 RoundedRectangle(cornerRadius: 2)
                     .fill(tint)
-                    .frame(width: 4, height: height - 4)
-                    .shadow(color: tint.opacity(0.6), radius: 4)
-                    .position(x: x, y: height / 2)
+                    .frame(width: 4, height: h - 4)
+                    .shadow(color: tint.opacity(0.5), radius: 3)
+                    .position(x: x, y: h / 2)
                     .animation(.spring(response: 0.2, dampingFraction: 0.75), value: clamped)
             }
         }
