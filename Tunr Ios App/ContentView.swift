@@ -11,7 +11,7 @@ struct ContentView: View {
 
     @StateObject private var detector = PitchDetector()
 
-    private var inTune: Bool { abs(detector.cents) < 5 && detector.frequency > 0 }
+    private var inTune: Bool { abs(detector.cents) < 8 && detector.frequency > 0 }
 
     // MARK: - Body
     var body: some View {
@@ -188,6 +188,7 @@ struct ContentView: View {
                 strings: GuitarTuning.standard,
                 selected: detector.lockedTarget ?? detector.closestTarget,
                 autoDetected: detector.lockedTarget == nil ? detector.closestTarget : nil,
+                inTuneNoteId: inTune ? (detector.lockedTarget ?? detector.closestTarget)?.id : nil,
                 onSelect: { note in
                     withAnimation(.spring(response: 0.3)) {
                         detector.lockedTarget =
@@ -211,8 +212,8 @@ struct ContentView: View {
     private var tuneColor: Color {
         guard detector.frequency > 0 else { return .gray }
         let c = abs(detector.cents)
-        if c < 5 { return .green }
-        if c < 15 { return .yellow }
+        if c < 8 { return .green }
+        if c < 20 { return .yellow }
         return .red
     }
 
@@ -353,6 +354,7 @@ private struct StringSelector: View {
     let strings: [GuitarNote]
     let selected: GuitarNote?
     let autoDetected: GuitarNote?
+    let inTuneNoteId: String?
     let onSelect: (GuitarNote) -> Void
 
     var body: some View {
@@ -360,6 +362,7 @@ private struct StringSelector: View {
             ForEach(strings) { note in
                 let isSelected = selected?.id == note.id
                 let isAuto = autoDetected?.id == note.id && !isSelected
+                let isInTune = inTuneNoteId == note.id
 
                 Button { onSelect(note) } label: {
                     VStack(spacing: 2) {
@@ -367,26 +370,29 @@ private struct StringSelector: View {
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                         Text("\(note.stringNumber)")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.35))
+                            .foregroundColor(isInTune ? .green.opacity(0.6) : .white.opacity(0.35))
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(isSelected ? Color.white.opacity(0.15)
-                                  : (isAuto ? Color.white.opacity(0.06)
-                                     : Color.white.opacity(0.03)))
+                            .fill(isInTune ? Color.green.opacity(0.15)
+                                  : (isSelected ? Color.white.opacity(0.15)
+                                     : (isAuto ? Color.white.opacity(0.06)
+                                        : Color.white.opacity(0.03))))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                isSelected ? Color.white.opacity(0.45)
-                                : (isAuto ? Color.white.opacity(0.12)
-                                   : Color.white.opacity(0.06)),
-                                lineWidth: isSelected ? 1.5 : 1
+                                isInTune ? Color.green.opacity(0.5)
+                                : (isSelected ? Color.white.opacity(0.45)
+                                   : (isAuto ? Color.white.opacity(0.12)
+                                      : Color.white.opacity(0.06))),
+                                lineWidth: (isInTune || isSelected) ? 1.5 : 1
                             )
                     )
-                    .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+                    .foregroundColor(isInTune ? .green : (isSelected ? .white : .white.opacity(0.6)))
+                    .animation(.easeInOut(duration: 0.3), value: isInTune)
                 }
                 .buttonStyle(.plain)
             }

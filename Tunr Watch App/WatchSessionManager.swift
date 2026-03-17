@@ -44,7 +44,7 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
             self.frequency = applicationContext["freq"] as? Double ?? 0
             self.noteName = applicationContext["note"] as? String ?? "--"
             self.cents = applicationContext["cents"] as? Double ?? 0
-            self.isInTune = abs(self.cents) < 3 && self.frequency > 0
+            self.isInTune = abs(self.cents) < 8 && self.frequency > 0
             self.isConnected = true
             self.lastUpdateTime = Date()
         }

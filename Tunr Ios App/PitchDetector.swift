@@ -19,7 +19,7 @@ final class PitchDetector: ObservableObject {
     // Smoothing & timing
     private var smoothedFreq: Double = 0
     private var smoothedCents: Double = 0
-    private let smoothing: Double = 0.3
+    private let smoothing: Double = 0.45
     private var lastPublishTime: CFTimeInterval = 0
 
     // YIN threshold — lower = stricter pitch confidence

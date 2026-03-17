@@ -100,8 +100,8 @@ struct ContentView: View {
 
     private var tint: Color {
         guard session.frequency > 0 else { return .gray }
-        if abs(session.cents) < 5 { return .green }
-        if abs(session.cents) < 15 { return .yellow }
+        if abs(session.cents) < 8 { return .green }
+        if abs(session.cents) < 20 { return .yellow }
         return .red
     }
 }
