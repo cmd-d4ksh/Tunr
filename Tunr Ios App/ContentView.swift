@@ -188,9 +188,14 @@ struct ContentView: View {
                 strings: GuitarTuning.standard,
                 selected: detector.lockedTarget ?? detector.closestTarget,
                 autoDetected: detector.lockedTarget == nil ? detector.closestTarget : nil,
-                inTuneNoteId: inTune ? (detector.lockedTarget ?? detector.closestTarget)?.id : nil,
+                tunedStringIds: detector.tunedStrings,
                 onSelect: { note in
                     withAnimation(.spring(response: 0.3)) {
+                        // If already tuned, tapping resets it
+                        if detector.tunedStrings.contains(note.id) {
+                            detector.tunedStrings.remove(note.id)
+                        }
+                        // Toggle lock
                         detector.lockedTarget =
                             (detector.lockedTarget?.id == note.id) ? nil : note
                     }
@@ -354,7 +359,7 @@ private struct StringSelector: View {
     let strings: [GuitarNote]
     let selected: GuitarNote?
     let autoDetected: GuitarNote?
-    let inTuneNoteId: String?
+    let tunedStringIds: Set<String>
     let onSelect: (GuitarNote) -> Void
 
     var body: some View {
@@ -364,7 +369,7 @@ private struct StringSelector: View {
                     note: note,
                     isSelected: selected?.id == note.id,
                     isAuto: autoDetected?.id == note.id && selected?.id != note.id,
-                    isInTune: inTuneNoteId == note.id,
+                    isTuned: tunedStringIds.contains(note.id),
                     onSelect: onSelect
                 )
             }
@@ -376,25 +381,25 @@ private struct StringButton: View {
     let note: GuitarNote
     let isSelected: Bool
     let isAuto: Bool
-    let isInTune: Bool
+    let isTuned: Bool
     let onSelect: (GuitarNote) -> Void
 
     private var fillColor: Color {
-        if isInTune { return Color.green.opacity(0.15) }
+        if isTuned { return Color.green.opacity(0.2) }
         if isSelected { return Color.white.opacity(0.15) }
         if isAuto { return Color.white.opacity(0.06) }
         return Color.white.opacity(0.03)
     }
 
     private var strokeColor: Color {
-        if isInTune { return Color.green.opacity(0.5) }
+        if isTuned { return Color.green.opacity(0.6) }
         if isSelected { return Color.white.opacity(0.45) }
         if isAuto { return Color.white.opacity(0.12) }
         return Color.white.opacity(0.06)
     }
 
     private var textColor: Color {
-        if isInTune { return .green }
+        if isTuned { return .green }
         if isSelected { return .white }
         return .white.opacity(0.6)
     }
@@ -402,11 +407,18 @@ private struct StringButton: View {
     var body: some View {
         Button { onSelect(note) } label: {
             VStack(spacing: 2) {
+                if isTuned {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.green.opacity(0.7))
+                        .frame(height: 4)
+                        .padding(.bottom, 2)
+                }
                 Text(note.name)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                 Text("\(note.stringNumber)")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(isInTune ? .green.opacity(0.6) : .white.opacity(0.35))
+                    .foregroundColor(isTuned ? .green.opacity(0.5) : .white.opacity(0.35))
             }
             .frame(maxWidth: .infinity)
             .frame(height: 54)
@@ -415,10 +427,10 @@ private struct StringButton: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(strokeColor, lineWidth: (isInTune || isSelected) ? 1.5 : 1)
+                    .stroke(strokeColor, lineWidth: (isTuned || isSelected) ? 1.5 : 1)
             )
             .foregroundColor(textColor)
-            .animation(.easeInOut(duration: 0.3), value: isInTune)
+            .animation(.easeInOut(duration: 0.3), value: isTuned)
         }
         .buttonStyle(.plain)
     }

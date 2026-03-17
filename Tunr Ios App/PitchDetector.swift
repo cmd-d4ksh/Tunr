@@ -19,15 +19,15 @@ final class PitchDetector: ObservableObject {
     // Smoothing & timing
     private var smoothedFreq: Double = 0
     private var smoothedCents: Double = 0
-    private let smoothing: Double = 0.45
+    private let smoothing: Double = 0.55
     private var lastPublishTime: CFTimeInterval = 0
 
     // YIN threshold — lower = stricter pitch confidence
-    private let yinThreshold: Float = 0.15
+    private let yinThreshold: Float = 0.2
 
     // Median filter for stability
     private var recentFrequencies: [Double] = []
-    private let medianWindowSize = 5
+    private let medianWindowSize = 3
 
     // MARK: - Published (UI)
     @Published var frequency: Double = 0.0
@@ -36,6 +36,7 @@ final class PitchDetector: ObservableObject {
     @Published var closestTarget: GuitarNote? = nil
     @Published var lockedTarget: GuitarNote? = nil
     @Published var isActive: Bool = false
+    @Published var tunedStrings: Set<String> = []  // IDs of strings that have been tuned
 
     // MARK: - Start / Stop
     func start() {
@@ -146,9 +147,9 @@ final class PitchDetector: ObservableObject {
         guard recentFrequencies.count >= 3 else { return }
         let stableFreq = medianValue(recentFrequencies)
 
-        // Throttle UI updates
+        // Throttle UI updates (~30fps)
         let now = CACurrentMediaTime()
-        guard now - lastPublishTime > 0.06 else { return }
+        guard now - lastPublishTime > 0.033 else { return }
         lastPublishTime = now
 
         DispatchQueue.main.async {
@@ -180,6 +181,11 @@ final class PitchDetector: ObservableObject {
                        + (1 - self.smoothing) * self.smoothedCents)
 
                 self.cents = self.smoothedCents
+
+                // Mark string as tuned when it hits the green zone
+                if abs(self.smoothedCents) < 8 {
+                    self.tunedStrings.insert(note.id)
+                }
             }
 
             WatchSessionManager.shared.sendTuningUpdate(
