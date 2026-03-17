@@ -40,21 +40,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		B001D1162F30504200AD3481 /* Exceptions for "Tunr Watch App" folder in "Tunr" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				SharedTuningState.swift,
-			);
-			target = B09EFFF32F292B55008A3B43 /* Tunr */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B09E00072F292BFE008A3B43 /* Tunr Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				B001D1162F30504200AD3481 /* Exceptions for "Tunr Watch App" folder in "Tunr" target */,
-			);
 			path = "Tunr Watch App";
 			sourceTree = "<group>";
 		};
